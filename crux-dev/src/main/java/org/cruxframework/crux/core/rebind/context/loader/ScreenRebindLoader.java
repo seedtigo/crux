@@ -24,25 +24,23 @@ import java.util.Set;
 import org.cruxframework.crux.core.declarativeui.screen.ScreenException;
 import org.cruxframework.crux.core.declarativeui.screen.ScreenLoader;
 import org.cruxframework.crux.core.declarativeui.view.ViewLoader;
-import org.cruxframework.crux.core.rebind.GeneratorProperties;
+import org.cruxframework.crux.core.rebind.context.RebindContext;
 
-import com.google.gwt.core.ext.GeneratorContext;
 import com.google.gwt.dev.resource.Resource;
 
 /**
  * @author Thiago da Rosa de Bustamante
  *
  */
-public class ScreenRebindLoader implements ScreenLoader
+public class ScreenRebindLoader extends AbstractViewLoader implements ScreenLoader
 {
-	private GeneratorContext context;
 	private Map<String, String> screens = new HashMap<String, String>();
 	private ViewRebindLoader viewContextLoader;
 	private boolean initialized = false;
 
-	public ScreenRebindLoader(GeneratorContext context)
+	public ScreenRebindLoader(RebindContext context)
     {
-		this.context = context;
+		super(context);
 		viewContextLoader = new ViewRebindLoader(context);
     }
 
@@ -52,7 +50,7 @@ public class ScreenRebindLoader implements ScreenLoader
 		initialize();
 		if (screens.containsKey(id))
 		{
-			return context.getResourcesOracle().getResource(screens.get(id));
+			return context.getGeneratorContext().getResourcesOracle().getResource(screens.get(id));
 		}
 		return null;
     }
@@ -76,8 +74,8 @@ public class ScreenRebindLoader implements ScreenLoader
 	{
 		if (!initialized)
 		{
-			List<String> screenFolders = GeneratorProperties.readConfigurationPropertyValues(context, GeneratorProperties.VIEW_BASE_FOLDER);
-			Set<String> pathNames = context.getResourcesOracle().getPathNames();
+			List<String> screenFolders = getViewBaseFolders();
+			Set<String> pathNames = context.getGeneratorContext().getResourcesOracle().getPathNames();
 
 			for (String pathName : pathNames)
 			{
