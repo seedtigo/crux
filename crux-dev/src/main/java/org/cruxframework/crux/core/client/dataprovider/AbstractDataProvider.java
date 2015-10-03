@@ -29,19 +29,48 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 	protected int currentRecord = -1;
 	protected Array<DataProviderRecord<T>> data = CollectionFactory.createArray();
 	protected Array<DataChangedHandler> dataChangedHandlers;
-	protected Array<ResetHandler> resetHandlers;
-	protected DataProvider.DataHandler<T> dataHandler;
+	protected Array<DataSelectionHandler<T>> dataSelectionHandlers;
+	protected DataProvider.EditionDataHandler<T> dataHandler;
 	protected Array<DataLoadedHandler> dataLoadedHandlers;
 	protected Array<DataSortedHandler> dataSortedHandlers;
 	protected Array<DataLoadStoppedHandler> dataStopLoadHandlers;
 	protected boolean loaded = false;
+	protected Array<ResetHandler> resetHandlers;
 	protected Array<TransactionEndHandler> transactionEndHandlers;
 	protected Array<TransactionStartHandler> transactionStartHandlers;
 	
-	public AbstractDataProvider(DataHandler<T> handler)
+	public AbstractDataProvider()
     {
-		this.dataHandler = handler;
+	}
+	
+	public AbstractDataProvider(EditionDataHandler<T> dataHandler)
+    {
+		this();
+		setEditionDataHandler(dataHandler);
     }
+	
+	@Override
+	public HandlerRegistration addDataSelectionHandler(final DataSelectionHandler<T> handler)
+	{
+		if (dataSelectionHandlers == null)
+		{
+			dataSelectionHandlers = CollectionFactory.createArray();
+		}
+		
+		dataSelectionHandlers.add(handler);
+		return new HandlerRegistration()
+		{
+			@Override
+			public void removeHandler()
+			{
+				int index = dataSelectionHandlers.indexOf(handler);
+				if (index >= 0)
+				{
+					dataSelectionHandlers.remove(index);
+				}
+			}
+		};
+	}
 	
 	@Override
 	public HandlerRegistration addDataChangedHandler(final DataChangedHandler handler)
@@ -67,29 +96,6 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 	}
 	
 	@Override
-	public HandlerRegistration addResetHandler(final ResetHandler handler)
-	{
-		if (resetHandlers == null)
-		{
-			resetHandlers = CollectionFactory.createArray();
-		}
-
-		resetHandlers.add(handler);
-		return new HandlerRegistration()
-		{
-			@Override
-			public void removeHandler()
-			{
-				int index = resetHandlers.indexOf(handler);
-				if (index >= 0)
-				{
-					resetHandlers.remove(index);
-				}
-			}
-		};
-	}	
-
-	@Override
 	public HandlerRegistration addDataLoadedHandler(final DataLoadedHandler handler)
 	{
 		if (dataLoadedHandlers == null)
@@ -110,7 +116,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 				}
 			}
 		};
-	}
+	}	
 
 	@Override
 	public HandlerRegistration addDataSortedHandler(final DataSortedHandler handler)
@@ -134,7 +140,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			}
 		};
 	}
-	
+
 	@Override
 	public HandlerRegistration addLoadStoppedHandler(final DataLoadStoppedHandler handler)
 	{
@@ -153,6 +159,29 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 				if (index >= 0)
 				{
 					dataStopLoadHandlers.remove(index);
+				}
+			}
+		};
+	}
+	
+	@Override
+	public HandlerRegistration addResetHandler(final ResetHandler handler)
+	{
+		if (resetHandlers == null)
+		{
+			resetHandlers = CollectionFactory.createArray();
+		}
+
+		resetHandlers.add(handler);
+		return new HandlerRegistration()
+		{
+			@Override
+			public void removeHandler()
+			{
+				int index = resetHandlers.indexOf(handler);
+				if (index >= 0)
+				{
+					resetHandlers.remove(index);
 				}
 			}
 		};
@@ -208,24 +237,45 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 	public T get()
 	{
 		DataProviderRecord<T> record = getRecord();
-		T clonedRecord = null;
-		if(record != null)
+		
+		if (isEditable())
 		{
-			clonedRecord = dataHandler.clone(record.getRecordObject());
+			T clonedRecord = null;
+			if(record != null)
+			{
+				clonedRecord = dataHandler.clone(record.getRecordObject());
+			}
+			return clonedRecord;
 		}
-		return clonedRecord;
+		return record.getRecordObject();
 	}
 	
 	@Override
 	public T get(int index)
 	{
 	    DataProviderRecord<T> record = data.get(index);
-	    T clonedRecord = null;
-		if(record != null)
+		if (isEditable())
 		{
-			clonedRecord = dataHandler.clone(record.getRecordObject());
+		    T clonedRecord = null;
+			if(record != null)
+			{
+				clonedRecord = dataHandler.clone(record.getRecordObject());
+			}
+			return clonedRecord;
 		}
-		return clonedRecord;
+		
+		if(record == null)
+		{
+			return null;
+		}
+		
+		return record.getRecordObject();
+	}
+	
+	@Override
+	public boolean isEditable()
+	{
+	    return this.dataHandler != null;
 	}
 	
     @Override
@@ -234,7 +284,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 	    return loaded;
     }
 	
-	@Override
+    @Override
 	public void next()
 	{
 		if (hasNext())
@@ -242,7 +292,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			currentRecord++;
 		}
 	}
-	
+        
 	@Override
 	public void previous()
 	{
@@ -251,8 +301,8 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			currentRecord--;
 		}
 	}
-	
-	@Override
+    
+    @Override
 	public void read(DataReader<T> reader)
 	{
 		if (reader != null)
@@ -285,7 +335,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			}
 		}
 	}
-
+	
 	@Override
 	public void reset()
 	{
@@ -299,6 +349,13 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 	}
 	
 	@Override
+    public void setEditionDataHandler(EditionDataHandler<T> dataHandler)
+    {
+    	ensureNotDirty();
+    	this.dataHandler = dataHandler;        
+    }
+
+	@Override
 	public void stopLoading()
 	{
 	    fireStopLoadEvent();
@@ -309,6 +366,14 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 		fireTransactionEndEvent(commited);
 	}
 	
+	protected void ensureNotDirty()
+    {
+	    if (isDirty())
+		{
+			throw new DataProviderException("There are uncommited changes on this DataProvider. Commit or rollback it first.");
+		}
+    }
+	
 	protected void fireDataChangedEvent(DataProviderRecord<?> currentRecord, int recordPosition)
     {
 		if (dataChangedHandlers != null)
@@ -317,6 +382,30 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			for (int i = 0; i< dataChangedHandlers.size(); i++)
 			{
 				dataChangedHandlers.get(i).onDataChanged(event);
+			}
+		}
+    }
+	
+	protected void fireDataSelectionEvent(Array<DataProviderRecord<T>> changedRecords)
+    {
+		if (dataSelectionHandlers != null)
+		{
+			DataSelectionEvent<T> event = new DataSelectionEvent<T>(this, changedRecords);
+			for (int i = 0; i< dataSelectionHandlers.size(); i++)
+			{
+				dataSelectionHandlers.get(i).onDataSelection(event);
+			}
+		}
+    }
+	
+	protected void fireLoadedEvent()
+    {
+		if (dataLoadedHandlers != null)
+		{
+			DataLoadedEvent event = new DataLoadedEvent(this);
+			for (int i = 0; i< dataLoadedHandlers.size(); i++)
+			{
+				dataLoadedHandlers.get(i).onLoaded(event);
 			}
 		}
     }
@@ -332,18 +421,6 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 			}
 		}
 	}
-	
-	protected void fireLoadedEvent()
-    {
-		if (dataLoadedHandlers != null)
-		{
-			DataLoadedEvent event = new DataLoadedEvent(this);
-			for (int i = 0; i< dataLoadedHandlers.size(); i++)
-			{
-				dataLoadedHandlers.get(i).onLoaded(event);
-			}
-		}
-    }
 	
 	protected void fireSortedEvent(boolean pageChanged)
 	{
@@ -398,7 +475,7 @@ public abstract class AbstractDataProvider<T> implements DataProvider<T>
 		loaded = true;
 		fireLoadedEvent();
 	}
-
+	
 	protected abstract void updateState(DataProviderRecord<T> record, DataProviderRecord.DataProviderRecordState previousState);
 
 }

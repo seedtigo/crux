@@ -21,9 +21,11 @@ import java.util.Set;
 
 import org.cruxframework.crux.core.rebind.AbstractProxyCreator.SourcePrinter;
 import org.cruxframework.crux.core.rebind.CruxGeneratorException;
+import org.cruxframework.crux.core.rebind.context.RebindContext;
 import org.cruxframework.crux.core.rebind.screen.widget.ExpressionDataBinding;
 import org.cruxframework.crux.core.rebind.screen.widget.ObjectDataBinding;
 import org.cruxframework.crux.core.rebind.screen.widget.PropertyBindInfo;
+import org.cruxframework.crux.core.rebind.screen.widget.ViewFactoryCreator;
 import org.cruxframework.crux.core.rebind.screen.widget.ViewFactoryCreator.DataBindingProcessor;
 import org.cruxframework.crux.core.rebind.screen.widget.WidgetCreatorContext;
 
@@ -38,12 +40,20 @@ public class HasDataProviderDataBindingProcessor implements DataBindingProcessor
 	private String collectionObjectReference;
 	private Set<String> converterClasses = new HashSet<String>();
 	private Set<String> converterDeclarations = new HashSet<String>();
+	private String itemVar;
+	private String collectionDataObjectVariable;
+	private RebindContext rebindContext;
 	
-	public HasDataProviderDataBindingProcessor(String bindingContextVariable, String collectionObjectReference, String collectionDataObject)
+	public HasDataProviderDataBindingProcessor(RebindContext rebindContext, String bindingContextVariable, String collectionObjectReference, 
+												String collectionDataObject, 
+												String itemVar)
     {
+		this.rebindContext = rebindContext;
+		this.collectionDataObjectVariable = ViewFactoryCreator.createVariableName("value");
 		this.bindingContextVariable = bindingContextVariable;
 		this.collectionObjectReference = collectionObjectReference;
 		this.collectionDataObject = collectionDataObject;
+		this.itemVar = itemVar;
     }
 	
 	@Override
@@ -52,6 +62,11 @@ public class HasDataProviderDataBindingProcessor implements DataBindingProcessor
 		processDataObjectBindings(out, context);
 		processBindingExpressions(out, context);
     }
+	
+	protected String getCollectionObjectReference()
+	{
+		return collectionObjectReference;
+	}
 
 	protected Set<String> getConverterDeclarations()
 	{
@@ -70,7 +85,7 @@ public class HasDataProviderDataBindingProcessor implements DataBindingProcessor
 			{
 				ExpressionDataBinding expressionBinding = expressionBindings.next();
 				out.println(expressionBinding.getWriteExpression(bindingContextVariable, context.getWidget(), 
-							collectionObjectReference, collectionDataObject));
+							collectionObjectReference, itemVar));
 				converterDeclarations.addAll(expressionBinding.getConverterDeclarations());
 			}
 		}
@@ -104,8 +119,29 @@ public class HasDataProviderDataBindingProcessor implements DataBindingProcessor
 						converterDeclarations.add(converterDeclaration);
 					}
 				}
-				out.println(bind.getWriteExpression(collectionObjectReference));
+
+				out.println(bind.getWriteExpression(bindingContextVariable, context.getWidget()));
 			}
 		}
-    }		
+    }
+
+	@Override
+    public String getDataObjectAlias(String dataObject)
+    {
+		if (dataObject != null && dataObject.equals(itemVar))
+		{
+			return collectionDataObject;
+		}
+	    return dataObject;
+    }
+	
+	public String getCollectionDataObjectVariable()
+	{
+		return collectionDataObjectVariable;
+	}
+	
+	public String getCollectionItemVariable()
+	{
+		return itemVar;
+	}
 }

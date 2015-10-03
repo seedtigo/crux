@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.cruxframework.crux.core.client.permission.Permissions;
 import org.cruxframework.crux.core.client.screen.DeviceAdaptive.Device;
+import org.cruxframework.crux.core.client.screen.DeviceAdaptive.Size;
 import org.cruxframework.crux.core.client.screen.binding.DataObjectBinder.UpdatedStateBindingContext;
 import org.cruxframework.crux.core.client.utils.EscapeUtils;
 import org.cruxframework.crux.core.client.utils.StringUtils;
@@ -32,6 +33,7 @@ import org.cruxframework.crux.core.rebind.screen.View;
 import org.cruxframework.crux.core.rebind.screen.ViewFactory;
 import org.cruxframework.crux.core.rebind.screen.widget.ViewFactoryCreator.DataBindingProcessor;
 import org.cruxframework.crux.core.rebind.screen.widget.ViewFactoryCreator.WidgetConsumer;
+import org.cruxframework.crux.core.rebind.screen.widget.creator.HasDataProviderDataBindingProcessor;
 import org.cruxframework.crux.core.rebind.screen.widget.creator.event.AttachEvtBind;
 import org.cruxframework.crux.core.rebind.screen.widget.creator.event.DettachEvtBind;
 import org.cruxframework.crux.core.rebind.screen.widget.creator.event.LoadWidgetEvtProcessor;
@@ -99,7 +101,8 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 			String widgetType, WidgetConsumer consumer, DataBindingProcessor dataBindingProcessor, WidgetCreatorContext context) throws CruxGeneratorException
 	{
 		WidgetConsumer widgetConsumer = consumer != null ? consumer : context.getWidgetConsumer();
-		return viewFactory.newWidget(out, metaElem, widgetId, widgetType, widgetConsumer, dataBindingProcessor);
+		DataBindingProcessor bindingProcessor = dataBindingProcessor != null ? dataBindingProcessor : context.getDataBindingProcessor();
+		return viewFactory.newWidget(out, metaElem, widgetId, widgetType, widgetConsumer, bindingProcessor);
 	}	
 	
 	/**
@@ -163,7 +166,7 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 			WidgetConsumer consumer, DataBindingProcessor dataBindingProcessor) throws CruxGeneratorException
 	{
 		boolean partialSupport = hasPartialSupport();
-		C context = createContext(out, metaElem, widgetId, consumer);
+		C context = createContext(out, metaElem, widgetId, consumer, dataBindingProcessor);
 		if (partialSupport)
 		{
 			out.println("if ("+getWidgetClassName()+".isSupported()){");
@@ -351,14 +354,18 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 		return viewFactory.getContext();
 	}
 
-	public String getDataBindingReadExpression(String dataObjectAlias, String dataObjectVariable, String bindingContextVariable, 
-		String propertyValue, Set<String> converterDeclarations)
+	public String getDataBindingReadExpression(String resultVariable, String dataObjectAlias, String bindingContextVariable, 
+		String propertyValue, Set<String> converterDeclarations, String widgetPropertyPath, 
+		HasDataProviderDataBindingProcessor dataBindingProcessor)
 	{
 		String expression = null;
-		PropertyBindInfo binding = getObjectDataBinding(propertyValue, null, true);
+		PropertyBindInfo binding = getObjectDataBinding(propertyValue, widgetPropertyPath, true, dataBindingProcessor);
+		
+		String dataObjectVariable = dataBindingProcessor.getCollectionDataObjectVariable();
+		String collectionItemVariable = dataBindingProcessor.getCollectionItemVariable();
 		if (binding != null)
 		{
-			expression = binding.getDataObjectReadExpression(dataObjectVariable);
+			expression = binding.getDataObjectReadExpression(bindingContextVariable, resultVariable);
 			String converterDeclaration = binding.getConverterDeclaration();
 			if (converterDeclaration != null)
 			{
@@ -367,10 +374,10 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 		}
 		else
 		{
-			ExpressionDataBinding expressionBinding = getExpressionDataBinding(propertyValue, null);
+			ExpressionDataBinding expressionBinding = getExpressionDataBinding(propertyValue, widgetPropertyPath, dataBindingProcessor);
 			if (expressionBinding != null)
 			{
-				expression = expressionBinding.getExpression(bindingContextVariable, dataObjectVariable, dataObjectAlias);
+				expression = expressionBinding.getExpression(resultVariable, bindingContextVariable, dataObjectVariable, collectionItemVariable);
 				converterDeclarations.addAll(expressionBinding.getConverterDeclarations());
 			}
 			else
@@ -409,9 +416,9 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	 * @param widgetPropertyPath
 	 * @return
 	 */
-	public ExpressionDataBinding getExpressionDataBinding(String propertyValue, String widgetPropertyPath)
+	public ExpressionDataBinding getExpressionDataBinding(String propertyValue, String widgetPropertyPath, DataBindingProcessor dataBindingProcessor)
 	{
-		return getExpressionDataBinding(propertyValue, getWidgetClassName(), widgetPropertyPath);
+		return getExpressionDataBinding(propertyValue, getWidgetClassName(), widgetPropertyPath, dataBindingProcessor);
 	}
 
 	/**
@@ -421,9 +428,10 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	 * @param widgetPropertyPath
 	 * @return
 	 */
-	public ExpressionDataBinding getExpressionDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath)
+	public ExpressionDataBinding getExpressionDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath, 
+		DataBindingProcessor dataBindingProcessor)
 	{
-		return getExpressionDataBinding(propertyValue, widgetClassName, widgetPropertyPath, null, null);
+		return getExpressionDataBinding(propertyValue, widgetClassName, widgetPropertyPath, null, null, dataBindingProcessor);
 	}
 	
 	/**
@@ -436,9 +444,10 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	 * @return
 	 */
 	public ExpressionDataBinding getExpressionDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath, 
-							String uiObjectClassName, String getUiObjectExpression)
+							String uiObjectClassName, String getUiObjectExpression, DataBindingProcessor dataBindingProcessor)
 	{
-		return viewFactory.getExpressionDataBinding(propertyValue, widgetClassName, widgetPropertyPath, uiObjectClassName, getUiObjectExpression);
+		return viewFactory.getExpressionDataBinding(propertyValue, widgetClassName, widgetPropertyPath, 
+			uiObjectClassName, getUiObjectExpression, dataBindingProcessor);
 	}
 
 	/**
@@ -456,9 +465,10 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	 * @param boundToAttribute
 	 * @return
 	 */
-	public PropertyBindInfo getObjectDataBinding(String propertyValue, String widgetPropertyPath, boolean boundToAttribute)
+	public PropertyBindInfo getObjectDataBinding(String propertyValue, String widgetPropertyPath, boolean boundToAttribute, 
+		DataBindingProcessor dataBindingProcessor)
 	{
-		return getObjectDataBinding(propertyValue, getWidgetClassName(), widgetPropertyPath, boundToAttribute);
+		return getObjectDataBinding(propertyValue, getWidgetClassName(), widgetPropertyPath, boundToAttribute, dataBindingProcessor);
 	}
 
 	/**
@@ -469,16 +479,17 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	 * @param boundToAttribute
 	 * @return
 	 */
-	public PropertyBindInfo getObjectDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath, boolean boundToAttribute)
+	public PropertyBindInfo getObjectDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath, 
+											boolean boundToAttribute, DataBindingProcessor dataBindingProcessor)
 	{
-		return getObjectDataBinding(propertyValue, widgetClassName, widgetPropertyPath, boundToAttribute, null, null);
+		return getObjectDataBinding(propertyValue, widgetClassName, widgetPropertyPath, boundToAttribute, null, null, dataBindingProcessor);
 	}
 	
     public PropertyBindInfo getObjectDataBinding(String propertyValue, String widgetClassName, String widgetPropertyPath, boolean boundToAttribute, 
-												String uiObjectClassName, String getUiObjectExpression)
+												String uiObjectClassName, String getUiObjectExpression, DataBindingProcessor dataBindingProcessor)
 	{
 		return viewFactory.getObjectDataBinding(propertyValue, widgetClassName, widgetPropertyPath, boundToAttribute, uiObjectClassName, 
-												getUiObjectExpression);
+												getUiObjectExpression, dataBindingProcessor);
 	}
 	
 	
@@ -705,22 +716,26 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 	{
 		viewFactory.commitPostProcessing(printer);
 	}
-	
+
 	/**
-	 * @param srcWriter 
-	 * @param element
+	 * 
+	 * @param out
+	 * @param metaElem
 	 * @param widgetId
 	 * @param consumer
+	 * @param dataBindingProcessor
 	 * @return
 	 * @throws CruxGeneratorException
 	 */
-	protected C createContext(SourcePrinter out, JSONObject metaElem, String widgetId, WidgetConsumer consumer) throws CruxGeneratorException
+	protected C createContext(SourcePrinter out, JSONObject metaElem, String widgetId, 
+		WidgetConsumer consumer, DataBindingProcessor dataBindingProcessor) throws CruxGeneratorException
 	{
 		C context = instantiateContext();
 		context.setWidgetElement(metaElem);
 		context.setWidgetId(widgetId);
 		context.setChildElement(metaElem);
 		context.setWidgetConsumer(consumer);
+		context.setDataBindingProcessor(dataBindingProcessor);
 		String widgetVariableName = createVariableName("widget");
 		context.setWidget(widgetVariableName);
 
@@ -785,6 +800,31 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 		return false;
 	}
 	
+	protected boolean isCurrentDeviceSupported(String size, String input)
+    {
+		Device current = Device.valueOf(viewFactory.getDevice());
+		if (current.equals(Device.all))
+		{
+			return true;
+		}
+		if (size != null && size.length() > 0)
+		{
+			if (!current.getSize().toString().equals(size))
+			{
+				return false;
+			}
+		}
+		if (input != null && input.length() > 0)
+		{
+			if (!current.getInput().toString().equals(input))
+			{
+				return false;
+			}
+		}
+		
+	    return true;
+    }
+	
 	/**
 	 * Print code that will be executed after the viewFactory completes the widgets construction
 	 * @param s code string
@@ -812,16 +852,16 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 		}
 		
 		return attributes;
-	}
-	
+	}	
+
 	/**
 	 * @return
 	 */
 	ViewFactoryCreator getViewFactory()
 	{
 		return this.viewFactory;
-	}	
-
+	}
+	
 	/**
 	 * @param viewFactory
 	 */
@@ -973,7 +1013,7 @@ public abstract class WidgetCreator <C extends WidgetCreatorContext>
 			}
 		}
 	}
-	
+
 	/**
 	 * @author Thiago da Rosa de Bustamante
 	 *

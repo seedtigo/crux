@@ -51,6 +51,12 @@ public interface DataProvider<T>
 	 */
 	HandlerRegistration addResetHandler(ResetHandler callback);
 	
+	/**Add a callback to be notified about any selection on data provider
+	 * @param callback to be called when data provider item is selected or unselected
+	 * @return a registration that allow handler do be removed
+	 */
+	HandlerRegistration addDataSelectionHandler(DataSelectionHandler<T> callback);
+	
 	/**Add a callback to be notified about any changes on data provider
 	 * @param callback to be called when data provider is changed
 	 * @return a registration that allow handler do be removed
@@ -176,6 +182,12 @@ public interface DataProvider<T>
 	boolean isDirty();
 
 	/**
+	 * Check if this dataProvider can be edited.
+	 * @return true if editable
+	 */
+	boolean isEditable();
+
+	/**
 	 * Check if the DataProvider is loaded
 	 * @return
 	 */
@@ -186,6 +198,12 @@ public interface DataProvider<T>
 	 */
 	void load();
 
+	/**
+	 * Make this dataProvider editable
+	 * @param dataHandler object responsible to clone objects on this dataProvider.
+	 */
+	void setEditionDataHandler(EditionDataHandler<T> dataHandler);
+	
 	/**
 	 * Points DataProvider to next record 
 	 */
@@ -312,12 +330,16 @@ public interface DataProvider<T>
 	}
 	
 	/**
-	 * 
+	 * Perform operation over the Data Objects on a DataProvider 
 	 * @author Thiago da Rosa de Bustamante
-	 *
 	 */
-	interface DataHandler<T>
+	interface EditionDataHandler<T>
 	{
+		/**
+		 * Clone a data object
+		 * @param object the object
+		 * @return the clone
+		 */
 		T clone(T object);
 	}
 }

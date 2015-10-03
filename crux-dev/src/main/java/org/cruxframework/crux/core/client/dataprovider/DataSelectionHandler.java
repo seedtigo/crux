@@ -13,22 +13,14 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package org.cruxframework.crux.core.client.dataprovider.pager;
-
-import org.cruxframework.crux.core.client.dataprovider.HasPagedDataProvider;
-import org.cruxframework.crux.core.client.dataprovider.PagedDataProvider;
-
-import com.google.gwt.user.client.ui.IsWidget;
+package org.cruxframework.crux.core.client.dataprovider;
 
 /**
- * Define a base interface for classes that are capable to be paged by a {@link Pager}.  
- * @author Thiago da Rosa de Bustamante
+ * @author Samuel Almeida Cardoso (samuel@cruxframework.org)
+ *
+ * @param <T>
  */
-public interface Pageable<T> extends HasPagedDataProvider<PagedDataProvider<T>>, IsWidget
+public interface DataSelectionHandler<T>
 {
-	/**
-	 * Sets the pager
-	 * @param pager
-	 */
-	void setPager(PageablePager<T> pager);
+	void onDataSelection(DataSelectionEvent<T> event);	
 }

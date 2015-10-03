@@ -29,7 +29,11 @@ abstract class AbstractScrollableDataProvider<T> extends AbstractDataProvider<T>
 {
 	protected DataProviderOperations<T> operations = new DataProviderOperations<T>(this);
 
-	public AbstractScrollableDataProvider(DataProvider.DataHandler<T> handler)
+	public AbstractScrollableDataProvider()
+    {
+    }
+	
+	public AbstractScrollableDataProvider(DataProvider.EditionDataHandler<T> handler)
     {
 	    super(handler);
     }
@@ -125,7 +129,7 @@ abstract class AbstractScrollableDataProvider<T> extends AbstractDataProvider<T>
 	@Override
 	public boolean isDirty()
 	{
-	    return operations.isDirty();
+	    return operations != null && operations.isDirty();
 	}
 
 	@Override
@@ -257,6 +261,7 @@ abstract class AbstractScrollableDataProvider<T> extends AbstractDataProvider<T>
 	public void sort(Comparator<T> comparator)
 	{
 		ensureLoaded();
+		ensureNotDirty();
 		if (data != null)
 		{
 			sortArray(data, comparator, true);
@@ -273,7 +278,7 @@ abstract class AbstractScrollableDataProvider<T> extends AbstractDataProvider<T>
 	{
 		if (!loaded)
 		{
-			throw new DataProviderExcpetion("Error processing requested operation. DataProvider is not loaded yet.");
+			throw new DataProviderException("Error processing requested operation. DataProvider is not loaded yet.");
 		}
 	}
 	

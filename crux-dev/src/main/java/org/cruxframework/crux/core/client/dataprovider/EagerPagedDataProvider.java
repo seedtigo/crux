@@ -31,12 +31,16 @@ public class EagerPagedDataProvider<T> extends AbstractPagedDataProvider<T>
 {
 	protected EagerDataLoader<T> dataLoader;
 
-	public EagerPagedDataProvider(DataProvider.DataHandler<T> handler)
+	public EagerPagedDataProvider()
+    {
+    }
+	
+	public EagerPagedDataProvider(DataProvider.EditionDataHandler<T> handler)
 	{
 		super(handler);
 	}
 
-	public EagerPagedDataProvider(DataProvider.DataHandler<T> handler, EagerDataLoader<T> dataLoader)
+	public EagerPagedDataProvider(DataProvider.EditionDataHandler<T> handler, EagerDataLoader<T> dataLoader)
     {
 		super(handler);
 		this.dataLoader = dataLoader;
@@ -94,6 +98,7 @@ public class EagerPagedDataProvider<T> extends AbstractPagedDataProvider<T>
 	public void sort(Comparator<T> comparator, boolean restart) 
 	{
 		ensureLoaded();
+		ensureNotDirty();
 		if (data != null)
 		{
 			sortArray(data, comparator, !restart);
@@ -110,6 +115,7 @@ public class EagerPagedDataProvider<T> extends AbstractPagedDataProvider<T>
 	@Override
 	public FilterRegistration<T> addFilter(final DataFilter<T> filter)
 	{
+		ensureNotDirty();
 		return operations.addFilter(filter);
 	}
 	

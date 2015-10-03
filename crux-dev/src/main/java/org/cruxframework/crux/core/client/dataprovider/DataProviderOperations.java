@@ -88,7 +88,7 @@ class DataProviderOperations<T>
 		DataProviderRecordState previousState = record.getCurrentState();
 		if (previousState.isReadOnly())
 		{
-			throw new DataProviderExcpetion("Can not update a read only information");//TODO i18n
+			throw new DataProviderException("Can not update a read only information");//TODO i18n
 		}
 		record.setRemoved(true);
 		this.dataProvider.data.remove(index);
@@ -113,7 +113,7 @@ class DataProviderOperations<T>
 		{
 			if (record.isReadOnly())
 			{
-				throw new DataProviderExcpetion("Can not update a read only information");//TODO i18n
+				throw new DataProviderException("Can not update a read only information");//TODO i18n
 			}
 			record.set(object);
 		}
@@ -160,19 +160,19 @@ class DataProviderOperations<T>
 	@SuppressWarnings("unchecked")
     DataProviderRecord<T>[] getNewRecords()
 	{
-		return newRecords.toArray(new DataProviderRecord[0]);
+		return newRecords.toArray(new DataProviderRecord[newRecords.size()]);
 	}
 
 	@SuppressWarnings("unchecked")
     DataProviderRecord<T>[] getRemovedRecords()
 	{
-		return removedRecords.toArray(new DataProviderRecord[0]);
+		return removedRecords.toArray(new DataProviderRecord[removedRecords.size()]);
 	}
 	
 	@SuppressWarnings("unchecked")
     DataProviderRecord<T>[] getReadOnlyRecords()
 	{
-		return readOnlyRecords.toArray(new DataProviderRecord[0]);
+		return readOnlyRecords.toArray(new DataProviderRecord[readOnlyRecords.size()]);
 	}
 	
 	
@@ -195,13 +195,13 @@ class DataProviderOperations<T>
 	@SuppressWarnings("unchecked")
     DataProviderRecord<T>[] getUpdatedRecords()
 	{
-		return changedRecords.toArray(new DataProviderRecord[0]);
+		return changedRecords.toArray(new DataProviderRecord[changedRecords.size()]);
 	}
 	
 	@SuppressWarnings("unchecked")
     DataProviderRecord<T>[] getSelectedRecords()
 	{
-		return selectedRecords.toArray(new DataProviderRecord[0]);
+		return selectedRecords.toArray(new DataProviderRecord[selectedRecords.size()]);
 	}
 	
 	int getRecordIndex(T boundObject)
