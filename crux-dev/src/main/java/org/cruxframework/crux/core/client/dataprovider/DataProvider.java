@@ -45,30 +45,25 @@ public interface DataProvider<T>
 	 */
 	DataProviderRecord<T> add(T object);
 	
-	/**Add a callback to be notified about resets on data provider
-	 * @param callback to be called when data provider is reset
-	 * @return a registration that allow handler do be removed
-	 */
-	HandlerRegistration addResetHandler(ResetHandler callback);
-	
-	/**Add a callback to be notified about any selection on data provider
-	 * @param callback to be called when data provider item is selected or unselected
-	 * @return a registration that allow handler do be removed
-	 */
-	HandlerRegistration addDataSelectionHandler(DataSelectionHandler<T> callback);
-	
-	/**Add a callback to be notified about any changes on data provider
+	/**
+	 * Add a callback to be notified about any changes on data provider
 	 * @param callback to be called when data provider is changed
 	 * @return a registration that allow handler do be removed
 	 */
 	HandlerRegistration addDataChangedHandler(DataChangedHandler callback);
-
+	
 	/**
 	 * Add a callback to be notified about DataProvider load events
 	 * @param callback to be called when DataProvider is loaded
 	 * @return a registration that allow handler to be removed 
 	 */
 	HandlerRegistration addDataLoadedHandler(DataLoadedHandler callback);
+	
+	/**Add a callback to be notified about any selection on data provider
+	 * @param callback to be called when data provider item is selected or unselected
+	 * @return a registration that allow handler do be removed
+	 */
+	HandlerRegistration addDataSelectionHandler(DataSelectionHandler<T> callback);
 
 	/**
 	 * Add a callback to be notified about DataProvider sort events
@@ -83,6 +78,12 @@ public interface DataProvider<T>
 	 * @return a registration that allow handler to be removed 
 	 */
 	HandlerRegistration addLoadStoppedHandler(DataLoadStoppedHandler callback);
+
+	/**Add a callback to be notified about resets on data provider
+	 * @param callback to be called when data provider is reset
+	 * @return a registration that allow handler do be removed
+	 */
+	HandlerRegistration addResetHandler(ResetHandler callback);
 	
 	/**Add a callback to be notified about any transaction executions on data provider
 	 * @param callback to be called when data provider transaction is concluded
@@ -151,6 +152,12 @@ public interface DataProvider<T>
 	DataProviderRecord<T>[] getSelectedRecords();
 
 	/**
+	 * Retrieve the SeleciontMode for this DataProvider
+	 * @return the selectionMode
+	 */
+	SelectionMode getSelectionMode();
+
+	/**
 	 * Return all records modified on DataProvider
 	 * @return all modified records
 	 */
@@ -167,14 +174,14 @@ public interface DataProvider<T>
 	 * @return true if previous records exist.
 	 */
 	boolean hasPrevious();
-
+	
 	/**
 	 * Retrieve the index of the given object
 	 * @param boundObject
 	 * @return
 	 */
 	int indexOf(T boundObject);
-	
+
 	/**
 	 * Check if this dataProvider has uncommitted modifications.
 	 * @return true if dirty
@@ -194,16 +201,17 @@ public interface DataProvider<T>
 	boolean isLoaded();
 
 	/**
+	 * Check if the record on the given position is selected
+	 * @param index record position
+	 * @return true if selected
+	 */
+	boolean isSelected(int index);
+	
+	/**
 	 * Load the DataProvider data.
 	 */
 	void load();
 
-	/**
-	 * Make this dataProvider editable
-	 * @param dataHandler object responsible to clone objects on this dataProvider.
-	 */
-	void setEditionDataHandler(EditionDataHandler<T> dataHandler);
-	
 	/**
 	 * Points DataProvider to next record 
 	 */
@@ -213,13 +221,13 @@ public interface DataProvider<T>
 	 * Points DataProvider to previous record 
 	 */
 	void previous();
-
+	
 	/**
 	 * Read the current record object. 
 	 * @param reader the reader used to consume the object retrieved.
 	 */
 	void read(DataReader<T> reader);
-	
+
 	/**
 	 * Read the object referred by the given index
 	 * @param index the object position
@@ -233,12 +241,12 @@ public interface DataProvider<T>
 	 * @return
 	 */
 	DataProviderRecord<T> remove(int record);
-
+	
 	/**
 	 * Reset DataProvider, as if it was never loaded before.
 	 */
 	void reset();
-	
+
 	/**
 	 * Undo all changes 
 	 */
@@ -259,6 +267,12 @@ public interface DataProvider<T>
 	 * @return
 	 */
 	DataProviderRecord<T> select(T object, boolean selected);
+	
+	/**
+	 * Mark all dataProvider records as selected
+	 * @param selected true if selected
+	 */
+	void selectAll(boolean selected);
 	
 	/**
 	 * Update the DataProvider object at the given index 
@@ -287,13 +301,20 @@ public interface DataProvider<T>
 	void setData(T[] data);
 	  	
 	/**
+	 * Make this dataProvider editable
+	 * @param dataHandler object responsible to clone objects on this dataProvider.
+	 */
+	void setEditionDataHandler(EditionDataHandler<T> dataHandler);
+
+	/**
 	 * Mark the given object as readOnly
 	 * @param index object position
 	 * @param readOnly true if readOnly
 	 * @return
 	 */
 	DataProviderRecord<T> setReadOnly(int index, boolean readOnly);
-
+	
+	
 	/**
 	 * Mark the given record as readOnly
 	 * @param object object to select
@@ -302,6 +323,11 @@ public interface DataProvider<T>
 	 */
 	DataProviderRecord<T> setReadOnly(T object, boolean readOnly);
 	
+	/**
+	 * Set the SeleciontMode for this DataProvider
+	 * @param selectionMode
+	 */
+	void setSelectionMode(SelectionMode selectionMode);
 	
 	/**
 	 * Sort DataProvider records, using the given comparator
@@ -342,4 +368,11 @@ public interface DataProvider<T>
 		 */
 		T clone(T object);
 	}
+	
+	/**
+	 * The selction modes supported by DataProvider.
+	 * @author Thiago da Rosa de Bustamante
+	 *
+	 */
+	enum SelectionMode {multiple, single, unselectable}
 }
